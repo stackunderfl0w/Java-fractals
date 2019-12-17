@@ -1,8 +1,7 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
@@ -17,6 +16,15 @@ public class Screen extends JPanel {
     private double x_rad=2;
     private int precision=5;
     BufferedImage pic;
+    private Point mouselocation;
+    private double start_x;
+    private double start_y;
+    private double mouse_start_x;
+    private double mouse_start_y;
+    drawableslider res_scaler=new drawableslider(0,0,125,75,0,0,true);
+    boolean scalin=false;
+
+
 
     Screen(){
         Main.f.addKeyListener(new KeyAdapter() {
@@ -58,6 +66,44 @@ public class Screen extends JPanel {
                 }
             }
         });
+        Main.f.addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                System.out.println(e);
+                x_rad*=.9;
+            }
+        });
+        addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                //call click handler
+                int x=e.getX();
+                int y=e.getY();
+                if ((res_scaler.getx() < x && x < res_scaler .getx() + res_scaler.getwidth()) && (res_scaler.gety() < y && y < res_scaler.gety() + res_scaler.getheight())) {
+                    scalin=true;
+                }
+                else {
+                    scalin=false;
+                }
+                //System.out.println(e);
+                mouselocation=e.getPoint();
+                start_x=x_center;
+                start_y=y_center;
+                mouse_start_x=e.getX();
+                mouse_start_y=e.getY();
+
+            }
+        });
+        addMouseMotionListener(new MouseMotionAdapter() {
+            public void mouseDragged(MouseEvent e) {
+                if (scalin){
+                    res_scaler.mousedraged(e.getX()-res_scaler.getx(),e.getY()-res_scaler.gety());
+                }else{
+                    mouselocation = e.getPoint();
+                    x_center=start_x-(e.getX()-mouse_start_x)/width*x_rad;
+                    y_center=start_y+(e.getY()-mouse_start_y)/height*x_rad;
+                }
+            }
+        });
     }
     public Dimension getPreferredSize() {
         return new Dimension(width, height);
@@ -75,8 +121,10 @@ public class Screen extends JPanel {
     }
     private void paintFullScreen() {
         //Check for window being resized
-        width = getWidth();
-        height = getHeight();
+        double resolution_scale=1;
+        resolution_scale=res_scaler.getposition();
+        width = (int)(getWidth()*((.99*resolution_scale)+.01));
+        height = (int)(getHeight()*((.99*resolution_scale)+.01));
         display= new boolean[width][height];
         disp= new int[width][height];
         Thread[] threads=new Thread[width];
@@ -159,8 +207,13 @@ public class Screen extends JPanel {
         }*/
         //g.fillRect(10, 10, 10, 10);
         //g.setColor(Color.green);
-        g.drawImage(pic,0,height,width,-height,null);
+        g.drawImage(pic,0,getHeight(),getWidth(),-getHeight(),null);
         g.drawString(String.valueOf(precision),10,20);
+        g.drawString(String.valueOf(x_center),10,40);
+        g.drawString(String.valueOf(y_center),10,60);
+        res_scaler.updateposition(getWidth()-130,50,0,0);
+        res_scaler.draw(g);
+
         /*try{
             File outputfile = new File("image.tiff");
             ImageIO.write(pic, "tiff", outputfile);
